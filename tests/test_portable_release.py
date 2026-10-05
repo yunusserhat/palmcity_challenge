@@ -1,6 +1,7 @@
 from copy import deepcopy
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,9 @@ def portable_workspace(monkeypatch, tmp_path):
     workspace = tmp_path / "user-workspace"
     monkeypatch.setenv("PALMCITY_WORKSPACE", str(workspace))
     monkeypatch.setenv("PALMCITY_WORF_PROFILE", "0")
+    # Synthetic nested workspaces can be long; reuse the script's validated
+    # short temporary directory explicitly for these storage API tests.
+    monkeypatch.setenv("PALMCITY_TMPDIR", os.environ["TMPDIR"])
     storage.prepare(0)
     return workspace
 
@@ -43,6 +47,39 @@ def test_worf_profile_forbids_filesystem_fallback(monkeypatch, tmp_path):
     monkeypatch.setattr(storage, "_scratch_mount", lambda: None)
     with pytest.raises(RuntimeError, match="below /scratch"):
         storage.configured_workspace()
+
+
+def test_long_ipc_path_is_rejected_before_creation(monkeypatch, portable_workspace):
+    directory = portable_workspace / ("long-temporary-name" * 8)
+    monkeypatch.setenv("PALMCITY_TMPDIR", str(directory))
+    with pytest.raises(RuntimeError, match="too long for AF_UNIX"):
+        storage.temporary_directory(portable_workspace)
+    assert not directory.exists()
+
+
+def test_explicit_ipc_directory_is_owned_writable_and_on_workspace_filesystem(portable_workspace):
+    directory = storage.temporary_directory(portable_workspace)
+    assert directory.stat().st_uid == os.getuid()
+    assert directory.stat().st_dev == portable_workspace.stat().st_dev
+    assert (directory / "palmcity-write-access-check.txt").is_file()
+
+
+def test_ipc_directory_rejects_different_filesystem(monkeypatch, portable_workspace):
+    from types import SimpleNamespace
+
+    directory = Path(os.environ["PALMCITY_TMPDIR"])
+    original_stat = Path.stat
+
+    def different_device(path, *args, **kwargs):
+        actual = original_stat(path, *args, **kwargs)
+        if path == directory and kwargs.get("follow_symlinks") is not False:
+            return SimpleNamespace(st_uid=actual.st_uid, st_mode=actual.st_mode,
+                                   st_dev=actual.st_dev + 1)
+        return actual
+
+    monkeypatch.setattr(Path, "stat", different_device)
+    with pytest.raises(RuntimeError, match="same filesystem"):
+        storage.temporary_directory(portable_workspace)
 
 
 def test_pinned_snapshot_hashes_detect_modified_bytes(tmp_path):

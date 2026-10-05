@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Source this file for a project-local environment. Shell startup files are unchanged.
 _palmcity_environment() {
-    local code_root bootstrap_python worf_config
+    local code_root bootstrap_python worf_config temp_directory
     code_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)" || return 1
     export PALMCITY_CODE_ROOT="$code_root"
     if [[ -z "${PALMCITY_WORKSPACE:-}" || "$PALMCITY_WORKSPACE" != /* ]]; then
@@ -32,7 +32,8 @@ _palmcity_environment() {
     export PIP_CACHE_DIR="$PALMCITY_WORKSPACE/cache/pip"
     export TORCH_HOME="$PALMCITY_WORKSPACE/cache/torch"
     export XDG_CACHE_HOME="$PALMCITY_WORKSPACE/cache/xdg"
-    export TMPDIR="$PALMCITY_WORKSPACE/tmp"
+    temp_directory="$("$bootstrap_python" -m palmcity.storage --temporary-directory)" || return 1
+    export TMPDIR="$temp_directory"
     export UV_PYTHON_DOWNLOADS=never
     export UV_LINK_MODE=copy
     export UV_NO_PROGRESS=1

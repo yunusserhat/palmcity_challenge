@@ -100,6 +100,47 @@ def require_free_space(path: Path, gib: float = 1.0) -> float:
     return free_gib
 
 
+def temporary_directory(workspace: Path) -> Path:
+    """Allow a short external IPC path only through an explicit user setting."""
+    configured = os.environ.get("PALMCITY_TMPDIR")
+    directory = Path(configured) if configured else workspace / "tmp"
+    if not directory.is_absolute():
+        raise RuntimeError("PALMCITY_TMPDIR must be an absolute path.")
+    # Python appends /pymp-XXXXXXXX/listener-XXXXXXXX. Linux AF_UNIX paths
+    # allow only 107 bytes; leave additional room for other IPC users.
+    if len(os.fsencode(directory)) > 70:
+        raise RuntimeError(
+            "Temporary directory path is too long for AF_UNIX sockets. "
+            "Set PALMCITY_TMPDIR to an absolute, short, user-owned directory "
+            "on the workspace filesystem (at most 70 path bytes)."
+        )
+    if directory == Path("/") or directory == Path.home():
+        raise RuntimeError("Choose a dedicated temporary directory, not a filesystem or home root.")
+    _no_symlinks(directory)
+    anchor = directory
+    missing = []
+    while not anchor.exists():
+        missing.append(anchor)
+        anchor = anchor.parent
+    _check_directory(anchor)
+    if anchor.stat().st_dev != workspace.stat().st_dev:
+        raise RuntimeError("Temporary directory must be on the same filesystem as the workspace.")
+    if os.environ.get("PALMCITY_WORF_PROFILE") == "1" and not directory.is_relative_to(Path("/scratch")):
+        raise RuntimeError("The Worf temporary directory must remain on scratch.")
+    require_free_space(anchor)
+    for path in reversed(missing):
+        path.mkdir(mode=0o700)
+        _check_directory(path)
+    _check_directory(directory)
+    probe = directory / "palmcity-write-access-check.txt"
+    _no_symlinks(probe)
+    if probe.exists() and (not probe.is_file() or probe.stat().st_uid != os.getuid()):
+        raise RuntimeError("Temporary write-access probe must be an owned regular file.")
+    with probe.open("a") as handle:
+        handle.write("Temporary directory preflight write succeeded.\n")
+    return directory
+
+
 def prepare(min_free_gib: float) -> dict:
     workspace = configured_workspace()
     nearest = workspace
@@ -115,6 +156,7 @@ def prepare(min_free_gib: float) -> dict:
     for directory in reversed(missing):
         directory.mkdir(mode=0o700)
     require_workspace()
+    temp_directory = temporary_directory(workspace)
     for name in (
         "data", "outputs", "manifests", "tmp", "reports", "verification", "pycache", "configs",
         "cache/uv", "cache/pip", "cache/torch", "cache/xdg",
@@ -132,19 +174,28 @@ def prepare(min_free_gib: float) -> dict:
         "minimum_free_gib": min_free_gib, "dependency_install_peak_estimate_gib": 20,
         "dataset_preparation_peak_estimate_gib": 5,
         "worf_profile": os.environ.get("PALMCITY_WORF_PROFILE") == "1",
+        "temporary_directory": str(temp_directory),
+        "external_temporary_directory_explicitly_selected": bool(os.environ.get("PALMCITY_TMPDIR")),
     }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prepare", action="store_true")
+    parser.add_argument("--temporary-directory", action="store_true")
     parser.add_argument("--min-free-gib", type=float, default=1.0)
     args = parser.parse_args()
-    if args.prepare:
-        report = prepare(args.min_free_gib)
-    else:
-        workspace = require_workspace()
-        report = {"workspace": str(workspace), "free_gib": require_free_space(workspace, args.min_free_gib)}
+    try:
+        if args.temporary_directory:
+            print(temporary_directory(require_workspace()))
+            return
+        if args.prepare:
+            report = prepare(args.min_free_gib)
+        else:
+            workspace = require_workspace()
+            report = {"workspace": str(workspace), "free_gib": require_free_space(workspace, args.min_free_gib)}
+    except (RuntimeError, ValueError, OSError) as error:
+        parser.exit(1, f"Workspace preflight failed: {error}\n")
     print(json.dumps(report, indent=2))
 
 

@@ -18,6 +18,14 @@ The default environment is `$PALMCITY_WORKSPACE/.venv`. `PALMCITY_ENVIRONMENT` s
 
 The storage preflight verifies ownership, actual write access, filesystem identity, free space and output confinement. Dependency installation reserves 20 GiB of free space. Dataset preparation reserves 5 GiB. Three selected training runs should start with at least 60 GiB available before environment setup. Keeping all candidates and optimizer states can require more than 150 GiB. Peak space depends on which intermediate runs you retain.
 
+Python multiprocessing creates Unix-domain sockets below its temporary directory. The default `$PALMCITY_WORKSPACE/tmp` must be at most 70 bytes long, including the full absolute path. A longer path is rejected before multiworker training begins. For a deeply nested workspace, explicitly select a short temporary directory before setup and verification.
+
+```bash
+export PALMCITY_TMPDIR="/absolute/short/user-owned/palmcity-tmp"
+```
+
+This is an explicit exception to workspace-only temporary writes. The directory must have a user-owned writable parent, remain on the same filesystem as the workspace, and pass an actual write probe. On Worf it must remain on scratch. The scripts never choose another directory automatically, fall back to the system temporary directory, change shared permissions or move existing files. Training artifacts, data, configs, reports and caches retain their configured locations.
+
 On Worf, the scripts automatically source the existing `~/.config/worf/huggingface-cache.sh`, reuse its Hub cache and require the workspace on the mounted scratch filesystem. They do not create a second Hub cache. Elsewhere, the default Hub cache is `$PALMCITY_WORKSPACE/cache/huggingface/hub`; an existing absolute `HF_HUB_CACHE` can be supplied explicitly. Authentication stays outside the repository. Gated DINOv3 sources require accepting the upstream conditions and authenticating with Hugging Face using its normal login workflow.
 
 ## Official data and unchanged labels

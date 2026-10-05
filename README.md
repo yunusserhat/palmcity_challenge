@@ -17,6 +17,8 @@ git clone https://github.com/yunusserhat/palmcity_challenge.git
 cd palmcity_challenge
 export PALMCITY_WORKSPACE="/absolute/path/to/your/palmcity-workspace"
 export PALMCITY_PYTHON="python3.12"
+# For deeply nested workspaces, also select a short directory on the same filesystem.
+# export PALMCITY_TMPDIR="/absolute/short/user-owned/palmcity-tmp"
 bash scripts/setup.sh
 bash scripts/verify.sh
 ```
@@ -32,6 +34,8 @@ bash scripts/reproduce.sh test
 ```
 
 The final file is `$PALMCITY_WORKSPACE/outputs/submission.zip`. It must contain exactly 249 flat PNG files, each 1024 by 512 pixels, in mode `L`, with integer class IDs from 0 through 31. The packager checks these requirements. It does not upload the ZIP.
+
+The default temporary directory is `$PALMCITY_WORKSPACE/tmp`. Its path must be at most 70 bytes because Python multiprocessing creates Unix sockets below it. For a longer workspace path, explicitly set `PALMCITY_TMPDIR` to a short, dedicated directory owned by you on the same filesystem. This opt-in permits temporary IPC files outside the workspace; the scripts never choose an external directory automatically.
 
 The selected recipe uses seeds 42, 123 and 2026, full 512 by 1024 panoramas, effective batch size 4, BF16, AdamW, 6351 optimizer updates and ten validation checks. Models are trained separately from the same pretrained source. The inference ensemble gives each model equal weight, averages probabilities over scales 0.75, 1 and 1.25 and also uses their horizontally flipped versions.
 
