@@ -18,4 +18,6 @@ PalmCity is supplied for research and challenge use. Consult the [dataset reposi
 
 The DINOv3 base and large encoder repositories require access authorization. Obtain that authorization from Meta and authenticate with your own Hugging Face account if reproducing those candidates. The selected EoMT ADE checkpoint is publicly downloadable, but its underlying DINOv3 terms still apply. Never place a token in a config, command history or versioned file.
 
+The final three PalmCity EoMT checkpoints are available separately in the [PalmCity model release](https://huggingface.co/yunusserhat/palmcity-eomt-dinov3-large). The derived weights are distributed under the DINOv3 License with the complete agreement and EoMT attribution supplied in that model repository. The [inference guide](inference.md) uses these weights directly. Their license is separate from the GPLv3 project code.
+
 Dependency implementations are installed from their pinned upstream packages rather than copied into this repository. PyTorch and torchvision use BSD style licenses. Transformers uses Apache 2.0. timm and segmentation_models_pytorch use permissive upstream licenses. Package metadata and upstream license files are authoritative for their respective versions.

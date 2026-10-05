@@ -23,6 +23,20 @@ bash scripts/setup.sh
 bash scripts/verify.sh
 ```
 
+## Use the trained models
+
+The three final EoMT models are available on [Hugging Face](https://huggingface.co/yunusserhat/palmcity-eomt-dinov3-large). After the setup above, you can predict a local panorama or a directory of panoramas directly.
+
+```bash
+HF_HUB_OFFLINE=0 bash scripts/run.sh python -m palmcity.hub \
+  --download --input /absolute/path/panorama.jpg \
+  --output-dir outputs/hub-fast --mode fast --colorize
+```
+
+Use `--mode challenge` for the submitted three-model ensemble with scales and horizontal flip, or `--mode single-tta` for the faster transformed single model. Inputs must have the 2:1 panoramic aspect ratio. Outputs include official class-ID PNGs and optional color visualizations. No dataset download or training is needed for this inference route. See the [inference guide](docs/inference.md) for CPU use, offline use and all options.
+
+## Train the selected system
+
 Prepare the official data and the three selected configs. The `--download` argument and the temporary online flag explicitly enable only the pinned checkpoint download. Training defaults to offline use of those files.
 
 ```bash

@@ -20,3 +20,9 @@ This release contains no PalmCity dataset, pretrained weight, finetuned
 checkpoint, access token or private session log. The author confirmed
 pretrained/external-data permission for the reported challenge experiment.
 Other users should follow the dataset, upstream model and challenge terms.
+
+The final PalmCity inference weights are published separately at
+https://huggingface.co/yunusserhat/palmcity-eomt-dinov3-large under the
+DINOv3 License, with the underlying EoMT notice retained. The Hugging Face
+model card describes their training and use. These model terms are separate
+from the GPL license of this code repository.
