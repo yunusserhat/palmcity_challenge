@@ -1,0 +1,27 @@
+{
+  "model": {
+    "architecture": "deeplabv3plus",
+    "encoder_name": "resnet50",
+    "encoder_weights": null,
+    "classes": 32
+  },
+  "image_size": [512, 1024],
+  "epochs": 60,
+  "batch_size": 2,
+  "drop_last": true,
+  "gradient_accumulation": 2,
+  "num_workers": 2,
+  "learning_rate": 0.0001,
+  "minimum_learning_rate": 0.000001,
+  "weight_decay": 0.01,
+  "polynomial_power": 0.9,
+  "dice_weight": 0.5,
+  "max_grad_norm": 1.0,
+  "amp": true,
+  "seed": 42,
+  "deterministic": false,
+  "augmentation": {
+    "horizontal_flip": 0.5,
+    "horizontal_roll": 0.0
+  }
+}

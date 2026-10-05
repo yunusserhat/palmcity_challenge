@@ -1,0 +1,38 @@
+{
+  "amp": true,
+  "augmentation": {
+    "horizontal_flip": 0.5,
+    "horizontal_roll": 0.0
+  },
+  "backbone_lr_multiplier": 0.1,
+  "batch_size": 2,
+  "deterministic": false,
+  "dice_weight": 0.5,
+  "drop_last": false,
+  "epochs": 60,
+  "gradient_accumulation": 2,
+  "image_size": [
+    512,
+    1024
+  ],
+  "initialization": "pretrained",
+  "learning_rate": 0.0006,
+  "max_grad_norm": 1.0,
+  "minimum_learning_rate": 1e-06,
+  "model": {
+    "architecture": "segformer",
+    "classes": 32,
+    "encoder_name": "mit_b2",
+    "encoder_weights": null
+  },
+  "num_workers": 2,
+  "polynomial_power": 0.9,
+  "pretrained_source": {
+    "license": "other",
+    "repo": "smp-hub/mit_b2.imagenet",
+    "revision": "868ab6f13871dcf8c3d9f90ee4519403475b65ef",
+    "source_url": "https://huggingface.co/smp-hub/mit_b2.imagenet/tree/868ab6f13871dcf8c3d9f90ee4519403475b65ef"
+  },
+  "seed": 42,
+  "weight_decay": 0.01
+}

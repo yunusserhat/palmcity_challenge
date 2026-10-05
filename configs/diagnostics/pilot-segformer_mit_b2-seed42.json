@@ -1,0 +1,54 @@
+{
+  "model": {
+    "architecture": "segformer",
+    "encoder_name": "mit_b2",
+    "encoder_weights": null,
+    "classes": 32
+  },
+  "image_size": [
+    512,
+    1024
+  ],
+  "epochs": 63,
+  "batch_size": 2,
+  "drop_last": false,
+  "gradient_accumulation": 2,
+  "num_workers": 2,
+  "learning_rate": 6e-05,
+  "minimum_learning_rate": 1e-06,
+  "weight_decay": 0.01,
+  "polynomial_power": 0.9,
+  "dice_weight": 0.5,
+  "max_grad_norm": 1.0,
+  "amp": true,
+  "seed": 42,
+  "deterministic": false,
+  "augmentation": {
+    "horizontal_flip": 0.5,
+    "horizontal_roll": 0.0
+  },
+  "initialization": "pretrained",
+  "pretrained_source": {
+    "repo": "smp-hub/mit_b2.imagenet",
+    "revision": "868ab6f13871dcf8c3d9f90ee4519403475b65ef",
+    "source_url": "https://huggingface.co/smp-hub/mit_b2.imagenet/tree/868ab6f13871dcf8c3d9f90ee4519403475b65ef",
+    "license": "other"
+  },
+  "backbone_lr_multiplier": 1.0,
+  "max_optimizer_steps": 7828,
+  "validation_epochs": [
+    7,
+    13,
+    19,
+    26,
+    32,
+    38,
+    45,
+    51,
+    57,
+    63
+  ],
+  "warmup_steps": 391,
+  "publication_selection_status": "excluded_from_primary_selection",
+  "publication_note": "Superseded optimizer diagnostic. Do not select the maximum of this and the corrected eligible recipe."
+}

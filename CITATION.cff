@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "Please cite the PalmCity dataset paper and this software when using the pipeline."
+type: software
+title: "PalmCity Challenge Training Pipeline"
+authors:
+  - given-names: "Yunus Serhat"
+    family-names: "Bıçakçı"
+    affiliation: "Department of Artificial Intelligence and Machine Learning, Faculty of Applied Sciences, Marmara University, Istanbul, Türkiye"
+    orcid: "https://orcid.org/0000-0002-7288-9959"
+version: "0.1.0"
+date-released: 2026-10-05
+repository-code: "https://github.com/yunusserhat/palmcity_challenge"
+license: GPL-3.0-only

@@ -1,0 +1,102 @@
+{
+  "amp": true,
+  "augmentation": {
+    "horizontal_flip": 0.5,
+    "horizontal_roll": 0.0
+  },
+  "backbone_lr_multiplier": 0.1,
+  "batch_size": 1,
+  "deterministic": false,
+  "dice_weight": 0.5,
+  "drop_last": false,
+  "epochs": 60,
+  "gradient_accumulation": 4,
+  "image_size": [
+    512,
+    1024
+  ],
+  "initialization": "pretrained",
+  "learning_rate": 0.0006,
+  "max_grad_norm": 1.0,
+  "minimum_learning_rate": 1e-06,
+  "model": {
+    "architecture": "segformer",
+    "backend": "transformers",
+    "classes": 32,
+    "hf_config": {
+      "attention_probs_dropout_prob": 0.0,
+      "classifier_dropout_prob": 0.1,
+      "decoder_hidden_size": 768,
+      "depths": [
+        3,
+        6,
+        40,
+        3
+      ],
+      "downsampling_rates": [
+        1,
+        4,
+        8,
+        16
+      ],
+      "drop_path_rate": 0.1,
+      "hidden_act": "gelu",
+      "hidden_dropout_prob": 0.0,
+      "hidden_sizes": [
+        64,
+        128,
+        320,
+        512
+      ],
+      "image_size": 224,
+      "initializer_range": 0.02,
+      "layer_norm_eps": 1e-06,
+      "mlp_ratios": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "model_type": "segformer",
+      "num_attention_heads": [
+        1,
+        2,
+        5,
+        8
+      ],
+      "num_channels": 3,
+      "num_encoder_blocks": 4,
+      "patch_sizes": [
+        7,
+        3,
+        3,
+        3
+      ],
+      "reshape_last_stage": true,
+      "sr_ratios": [
+        8,
+        4,
+        2,
+        1
+      ],
+      "strides": [
+        4,
+        2,
+        2,
+        2
+      ]
+    },
+    "pretrained_model_name_or_path": null,
+    "variant": "mit_b5"
+  },
+  "num_workers": 2,
+  "polynomial_power": 0.9,
+  "pretrained_source": {
+    "license": "other",
+    "repo": "nvidia/segformer-b5-finetuned-ade-640-640",
+    "revision": "739f5d4692954e4a185eac280dec1ba5a7d52f1d",
+    "source_url": "https://huggingface.co/nvidia/segformer-b5-finetuned-ade-640-640/tree/739f5d4692954e4a185eac280dec1ba5a7d52f1d"
+  },
+  "seed": 42,
+  "weight_decay": 0.01
+}

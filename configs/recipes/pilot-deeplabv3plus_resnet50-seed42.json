@@ -1,0 +1,52 @@
+{
+  "model": {
+    "architecture": "deeplabv3plus",
+    "encoder_name": "resnet50",
+    "encoder_weights": null,
+    "classes": 32
+  },
+  "image_size": [
+    512,
+    1024
+  ],
+  "epochs": 92,
+  "batch_size": 2,
+  "drop_last": true,
+  "gradient_accumulation": 2,
+  "num_workers": 2,
+  "learning_rate": 0.0001,
+  "minimum_learning_rate": 1e-06,
+  "weight_decay": 0.01,
+  "polynomial_power": 0.9,
+  "dice_weight": 0.5,
+  "max_grad_norm": 1.0,
+  "amp": true,
+  "seed": 42,
+  "deterministic": false,
+  "augmentation": {
+    "horizontal_flip": 0.5,
+    "horizontal_roll": 0.0
+  },
+  "initialization": "pretrained",
+  "pretrained_source": {
+    "repo": "smp-hub/resnet50.imagenet",
+    "revision": "00cb74e366966d59cd9a35af57e618af9f88efe9",
+    "source_url": "https://huggingface.co/smp-hub/resnet50.imagenet/tree/00cb74e366966d59cd9a35af57e618af9f88efe9",
+    "license": "other"
+  },
+  "backbone_lr_multiplier": 1.0,
+  "max_optimizer_steps": 11365,
+  "validation_epochs": [
+    10,
+    19,
+    28,
+    37,
+    46,
+    56,
+    65,
+    74,
+    83,
+    92
+  ],
+  "warmup_steps": 568
+}

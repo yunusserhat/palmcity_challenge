@@ -1,0 +1,255 @@
+[
+  {
+    "repo": "smp-hub/resnet50.imagenet",
+    "revision": "00cb74e366966d59cd9a35af57e618af9f88efe9",
+    "source_url": "https://huggingface.co/smp-hub/resnet50.imagenet/tree/00cb74e366966d59cd9a35af57e618af9f88efe9",
+    "license": "other",
+    "license_details": "BSD-3-Clause code, artifact card other",
+    "license_source": "https://github.com/pytorch/vision/blob/main/LICENSE",
+    "pretrained_data": "ImageNet classification encoder; decoder random",
+    "access": "public, upstream terms apply",
+    "files": [
+      {
+        "name": "config.json",
+        "bytes": 156,
+        "sha256": "01bf2cf24eb29b405c28c159f46ceda92c098ab85868be88fb100967db47166e"
+      },
+      {
+        "name": "README.md",
+        "bytes": 890,
+        "sha256": "228d696ff80ab90086c16b2e58bb1db5779ba2c14530016f273c11db612616dd"
+      },
+      {
+        "name": "model.safetensors",
+        "bytes": 102464800,
+        "sha256": "df1aad85e18536504a4c8597118364e291ff3a9c4b56dd9b3a4900642e4c3a7c"
+      }
+    ]
+  },
+  {
+    "repo": "smp-hub/mit_b2.imagenet",
+    "revision": "868ab6f13871dcf8c3d9f90ee4519403475b65ef",
+    "source_url": "https://huggingface.co/smp-hub/mit_b2.imagenet/tree/868ab6f13871dcf8c3d9f90ee4519403475b65ef",
+    "license": "other",
+    "license_details": "NVIDIA research/noncommercial terms",
+    "license_source": "https://github.com/NVlabs/SegFormer/blob/master/LICENSE",
+    "pretrained_data": "ImageNet classification encoder; decoder random",
+    "access": "public, upstream terms apply",
+    "files": [
+      {
+        "name": "config.json",
+        "bytes": 135,
+        "sha256": "13c350b0a57ad271642f941fedd790491f9fa47c70e3aaddfa5cd18de212540d"
+      },
+      {
+        "name": "README.md",
+        "bytes": 913,
+        "sha256": "67c6a7e115357064edc87ad0d3eef210b234d3ce4a69ab43927c357d7eeca7da"
+      },
+      {
+        "name": "model.safetensors",
+        "bytes": 98867640,
+        "sha256": "ab18b54f81748427bae1183160822903470bcca0e3121944c0d185b4b1816a95"
+      }
+    ]
+  },
+  {
+    "repo": "nvidia/segformer-b5-finetuned-ade-640-640",
+    "revision": "739f5d4692954e4a185eac280dec1ba5a7d52f1d",
+    "source_url": "https://huggingface.co/nvidia/segformer-b5-finetuned-ade-640-640/tree/739f5d4692954e4a185eac280dec1ba5a7d52f1d",
+    "license": "other",
+    "license_details": "NVIDIA research/noncommercial terms",
+    "license_source": "https://github.com/NVlabs/SegFormer/blob/master/LICENSE",
+    "pretrained_data": "ImageNet-1k encoder + ADE20K segmentation",
+    "access": "public, upstream terms apply",
+    "files": [
+      {
+        "name": "config.json",
+        "bytes": 6886,
+        "sha256": "083fbb6bc7ce4a2fc54bdb08686943cc5a72d14b32e81187b6ae12a58092bc13"
+      },
+      {
+        "name": "README.md",
+        "bytes": 3209,
+        "sha256": "b191a0eac88fb4447543e6c53a39b8c239d15627416cea0c075342971d45b104"
+      },
+      {
+        "name": "pytorch_model.bin",
+        "bytes": 339299397,
+        "sha256": "a3dbf2d7a9912203078f304d88df8cfee9fd752ca2d2413f82036bdb02c5e7df"
+      }
+    ]
+  },
+  {
+    "repo": "openmmlab/upernet-convnext-large",
+    "revision": "b029b4fb01ac63f0f9507b9eb60ac716cfb1f568",
+    "source_url": "https://huggingface.co/openmmlab/upernet-convnext-large/tree/b029b4fb01ac63f0f9507b9eb60ac716cfb1f568",
+    "license": "mit",
+    "license_details": "MIT declared by official model card",
+    "license_source": "https://huggingface.co/openmmlab/upernet-convnext-large",
+    "pretrained_data": "Full ADE20K segmentation checkpoint; model card does not specify original backbone pretraining dataset",
+    "access": "public, upstream terms apply",
+    "files": [
+      {
+        "name": "config.json",
+        "bytes": 8758,
+        "sha256": "be06fb559a6075564b48bd2cd38f61ca8995803636a61b3ce21615cf5ee7fe88"
+      },
+      {
+        "name": "README.md",
+        "bytes": 1556,
+        "sha256": "6053df4f36c79b09f086db7ffad9a8fa0d894ce1d1ac873d4f12aa7b7268070f"
+      },
+      {
+        "name": "pytorch_model.bin",
+        "bytes": 940172357,
+        "sha256": "a3357f340216a10c8dc341187e6ebe30b4125bcffc3a2b3e7f1e6490a1c38675"
+      }
+    ]
+  },
+  {
+    "repo": "openmmlab/upernet-swin-large",
+    "revision": "e7abf954755276353891cc5991c3b047fbb6e646",
+    "source_url": "https://huggingface.co/openmmlab/upernet-swin-large/tree/e7abf954755276353891cc5991c3b047fbb6e646",
+    "license": "mit",
+    "license_details": "MIT declared by official model card",
+    "license_source": "https://huggingface.co/openmmlab/upernet-swin-large",
+    "pretrained_data": "Full ADE20K segmentation checkpoint; model card does not specify original backbone pretraining dataset",
+    "access": "public, upstream terms apply",
+    "files": [
+      {
+        "name": "config.json",
+        "bytes": 8982,
+        "sha256": "26aebe3c6c593d1eaae980638ca0a00a3350f5b07bfebfc1ed97a7b2e5da5710"
+      },
+      {
+        "name": "README.md",
+        "bytes": 1632,
+        "sha256": "10ea2928fa7522f5ce267013954d95b400e591c562b60d896481fb58550b98c7"
+      },
+      {
+        "name": "model.safetensors",
+        "bytes": 939953442,
+        "sha256": "9687e932e51bf0de07fa212038a569b533dfa3b56b4f20f2e0e3110818409618"
+      }
+    ]
+  },
+  {
+    "repo": "facebook/mask2former-swin-large-ade-semantic",
+    "revision": "aa25c92404a40599614215e76514c79b427c7527",
+    "source_url": "https://huggingface.co/facebook/mask2former-swin-large-ade-semantic/tree/aa25c92404a40599614215e76514c79b427c7527",
+    "license": "other",
+    "license_details": "CC-BY-NC-4.0 artifact, MIT upstream code",
+    "license_source": "https://github.com/facebookresearch/Mask2Former/blob/main/MODEL_ZOO.md#license",
+    "pretrained_data": "ADE20K semantic segmentation; model-card datasets:coco conflicts with body and is not used as dataset evidence",
+    "access": "public, upstream terms apply",
+    "files": [
+      {
+        "name": "config.json",
+        "bytes": 82540,
+        "sha256": "573b9330846ed787069557d7eaf78d20a695a4ac7155b957becff02748a8d293"
+      },
+      {
+        "name": "README.md",
+        "bytes": 3163,
+        "sha256": "f9f97f6a088868c6c365b2b88a7df8a9f20a8df82f7494e61b19c3bbf367cc07"
+      },
+      {
+        "name": "model.safetensors",
+        "bytes": 866052064,
+        "sha256": "b143c144341c15b4f20165cc6d2c9305fb1b66792f68a6e0e06d2b20dc063b14"
+      }
+    ]
+  },
+  {
+    "repo": "facebook/dinov3-vitb16-pretrain-lvd1689m",
+    "revision": "5931719e67bbdb9737e363e781fb0c67687896bc",
+    "source_url": "https://huggingface.co/facebook/dinov3-vitb16-pretrain-lvd1689m/tree/5931719e67bbdb9737e363e781fb0c67687896bc",
+    "license": "other",
+    "license_details": "DINOv3 custom license; gated access succeeded existing credentials",
+    "license_source": "https://huggingface.co/facebook/dinov3-vitb16-pretrain-lvd1689m/blob/main/LICENSE.md",
+    "pretrained_data": "LVD-1689M distilled DINOv3 encoder; PalmCity linear decoder random",
+    "access": "gated, accept upstream terms and authenticate with Hugging Face",
+    "files": [
+      {
+        "name": "LICENSE.md",
+        "bytes": 7503,
+        "sha256": "25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e"
+      },
+      {
+        "name": "config.json",
+        "bytes": 744,
+        "sha256": "3c9cc418f4622fd6d5587fd142b6f3cba0ba6a69f67ced907d8b7f26118451ec"
+      },
+      {
+        "name": "README.md",
+        "bytes": 14520,
+        "sha256": "42990cce5247479866ce2e6aa375eb3c3d1717966c41b74890d377a31ad0b0fe"
+      },
+      {
+        "name": "model.safetensors",
+        "bytes": 342662192,
+        "sha256": "9a21ac3df0c63839d62612dda6f454d816c25611cc7a52966ed5a5a94921dc8b"
+      }
+    ]
+  },
+  {
+    "repo": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "source_url": "https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m/tree/ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "license": "other",
+    "license_details": "DINOv3 custom license; gated access succeeded existing credentials",
+    "license_source": "https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m/blob/main/LICENSE.md",
+    "pretrained_data": "LVD-1689M distilled DINOv3 encoder; PalmCity linear decoder random",
+    "access": "gated, accept upstream terms and authenticate with Hugging Face",
+    "files": [
+      {
+        "name": "LICENSE.md",
+        "bytes": 7503,
+        "sha256": "25d122eb8f5b880fd23c736fb6ea8018ee45c12237e00b8a86d14c653904999e"
+      },
+      {
+        "name": "config.json",
+        "bytes": 745,
+        "sha256": "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5"
+      },
+      {
+        "name": "README.md",
+        "bytes": 14520,
+        "sha256": "5395522a8a611d0578b6036f47e60445381ee4b2c7508f0e93d9e4c1e876fa63"
+      },
+      {
+        "name": "model.safetensors",
+        "bytes": 1212559808,
+        "sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179"
+      }
+    ]
+  },
+  {
+    "repo": "tue-mps/eomt-dinov3-ade-semantic-large-512",
+    "revision": "1d1f172700ab69371df7afe778fe133fff7dd521",
+    "source_url": "https://huggingface.co/tue-mps/eomt-dinov3-ade-semantic-large-512/tree/1d1f172700ab69371df7afe778fe133fff7dd521",
+    "license": "mit",
+    "license_details": "MIT model-card declaration; DINOv3 underlying pretrained license also applies",
+    "license_source": "https://huggingface.co/tue-mps/eomt-dinov3-ade-semantic-large-512",
+    "pretrained_data": "DINOv3 ViT-L/16 + ADE20K semantic segmentation",
+    "access": "public, upstream terms apply",
+    "files": [
+      {
+        "name": "config.json",
+        "bytes": 7055,
+        "sha256": "a061170347144a5a1e7877e583ef55996bd57fbc847c33bddec6db59a54aa1a3"
+      },
+      {
+        "name": "README.md",
+        "bytes": 3072,
+        "sha256": "7625d07d243e606f2b85196151c460c07d24ac429650cf5ec82ddbd959e5a15a"
+      },
+      {
+        "name": "model.safetensors",
+        "bytes": 1259835392,
+        "sha256": "319c72ee001fad0f81876fab96ae7148d13c259cd433a7326746e85e6b89d482"
+      }
+    ]
+  }
+]

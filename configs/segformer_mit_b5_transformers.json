@@ -1,0 +1,31 @@
+{
+  "image_size": [
+    512,
+    1024
+  ],
+  "epochs": 60,
+  "batch_size": 1,
+  "drop_last": false,
+  "gradient_accumulation": 4,
+  "num_workers": 2,
+  "learning_rate": 6e-05,
+  "minimum_learning_rate": 1e-06,
+  "weight_decay": 0.01,
+  "polynomial_power": 0.9,
+  "dice_weight": 0.5,
+  "max_grad_norm": 1.0,
+  "amp": true,
+  "seed": 42,
+  "deterministic": false,
+  "augmentation": {
+    "horizontal_flip": 0.5,
+    "horizontal_roll": 0.0
+  },
+  "model": {
+    "backend": "transformers",
+    "architecture": "segformer",
+    "variant": "mit_b5",
+    "classes": 32,
+    "pretrained_model_name_or_path": null
+  }
+}

@@ -1,0 +1,22 @@
+PalmCity Challenge Training Pipeline
+Copyright (C) 2026 Yunus Serhat Bıçakçı
+
+Original project code is licensed under the GNU General Public License,
+version 3 only (SPDX identifier GPL-3.0-only). See LICENSE.
+
+The GPL license applies to this software. It does not grant a license to
+PalmCity images or annotations, pretrained model weights, training data used
+by upstream models, or third-party Python dependencies. Those artifacts
+retain their own terms and are obtained separately from their authors.
+
+This repository imports PyTorch, torchvision, Transformers, timm,
+segmentation_models_pytorch and other dependencies. Their implementations
+are not vendored into this repository. Segmentation adapters use their
+public APIs. The DINO linear decoder and EoMT attention-mask adaptation
+follow the upstream published methods. See docs/third-party.md and the
+pinned source catalog for attribution, source revisions and access terms.
+
+This release contains no PalmCity dataset, pretrained weight, finetuned
+checkpoint, access token or private session log. The author confirmed
+pretrained/external-data permission for the reported challenge experiment.
+Other users should follow the dataset, upstream model and challenge terms.

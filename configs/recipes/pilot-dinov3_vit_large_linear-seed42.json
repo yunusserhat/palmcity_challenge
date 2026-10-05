@@ -1,0 +1,83 @@
+{
+  "image_size": [
+    512,
+    1024
+  ],
+  "epochs": 16,
+  "batch_size": 1,
+  "drop_last": false,
+  "gradient_accumulation": 4,
+  "num_workers": 2,
+  "learning_rate": 0.0006,
+  "minimum_learning_rate": 1e-06,
+  "weight_decay": 0.01,
+  "polynomial_power": 0.9,
+  "dice_weight": 0.5,
+  "max_grad_norm": 1.0,
+  "amp": true,
+  "seed": 42,
+  "deterministic": false,
+  "augmentation": {
+    "horizontal_flip": 0.5,
+    "horizontal_roll": 0.0
+  },
+  "model": {
+    "backend": "transformers",
+    "architecture": "dinov3_linear",
+    "variant": "vit_large",
+    "classes": 32,
+    "pretrained_model_name_or_path": null,
+    "freeze_backbone": false,
+    "decoder_dropout": 0.1,
+    "hf_config": {
+      "attention_dropout": 0.0,
+      "drop_path_rate": 0.0,
+      "hidden_act": "gelu",
+      "hidden_size": 1024,
+      "image_size": 224,
+      "initializer_range": 0.02,
+      "intermediate_size": 4096,
+      "key_bias": false,
+      "layer_norm_eps": 1e-05,
+      "layerscale_value": 1.0,
+      "mlp_bias": true,
+      "model_type": "dinov3_vit",
+      "num_attention_heads": 16,
+      "num_channels": 3,
+      "num_hidden_layers": 24,
+      "num_register_tokens": 4,
+      "patch_size": 16,
+      "pos_embed_jitter": null,
+      "pos_embed_rescale": 2.0,
+      "pos_embed_shift": null,
+      "proj_bias": true,
+      "query_bias": true,
+      "rope_theta": 100.0,
+      "use_gated_mlp": false,
+      "value_bias": true
+    }
+  },
+  "gradient_checkpointing": true,
+  "pretrained_source": {
+    "repo": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "source_url": "https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m/tree/ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "license": "other"
+  },
+  "initialization": "pretrained",
+  "backbone_lr_multiplier": 0.1,
+  "max_optimizer_steps": 1920,
+  "validation_epochs": [
+    2,
+    4,
+    5,
+    7,
+    8,
+    10,
+    12,
+    13,
+    15,
+    16
+  ],
+  "warmup_steps": 96
+}

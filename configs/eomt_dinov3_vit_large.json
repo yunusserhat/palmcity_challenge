@@ -1,0 +1,46 @@
+{
+  "image_size": [
+    512,
+    1024
+  ],
+  "epochs": 60,
+  "batch_size": 1,
+  "drop_last": false,
+  "gradient_accumulation": 4,
+  "num_workers": 2,
+  "learning_rate": 6e-05,
+  "minimum_learning_rate": 1e-06,
+  "weight_decay": 0.01,
+  "polynomial_power": 0.9,
+  "dice_weight": 0.0,
+  "max_grad_norm": 1.0,
+  "amp": true,
+  "seed": 42,
+  "deterministic": false,
+  "augmentation": {
+    "horizontal_flip": 0.5,
+    "horizontal_roll": 0.0
+  },
+  "model": {
+    "backend": "transformers",
+    "architecture": "eomt_dinov3",
+    "variant": "vit_large",
+    "classes": 32,
+    "pretrained_model_name_or_path": null,
+    "attention_mask_schedule": {
+      "start_fractions": [
+        0.0,
+        0.4,
+        0.6,
+        0.8
+      ],
+      "end_fractions": [
+        0.2,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "power": 0.9
+    }
+  }
+}
