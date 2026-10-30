@@ -23,7 +23,7 @@ from .benchmark import idle_gpu
 from .data import CLASS_NAMES, read_manifest
 from .models import NUM_CLASSES, amp_settings, build_model, optimizer_parameter_groups, select_device
 from .storage import require_free_space, require_workspace, safe_output_path
-from .train import PanoramaDataset, model_training_loss, seed_worker, validate
+from .train import PanoramaDataset, build_training_loader, model_training_loss, validate
 from .training_state import atomic_json, code_identity, data_identity, dependency_versions, file_sha256
 
 PRETRAINED_FIELDS = ("encoder_weights", "encoder_pretrained_path", "pretrained_model_name_or_path", "pretrained_backbone_name_or_path")
@@ -124,10 +124,10 @@ def calibrate(config_path: str | Path, manifest_path: str | Path, report_path: s
         report["checkpoint_peak_estimate_bytes"] = parameters * 4 * 10
         require_free_space(workspace, gib=max(1.0, report["checkpoint_peak_estimate_bytes"] / 1024**3))
         dataset = PanoramaDataset(manifest["train"], config, training=True)
-        loader = DataLoader(dataset, batch_size=batch, shuffle=True,
-                            num_workers=int(config.get("num_workers", 2)), drop_last=config["drop_last"],
-                            pin_memory=device.type == "cuda", worker_init_fn=seed_worker,
-                            generator=torch.Generator().manual_seed(seed))
+        loader, sampling_metadata = build_training_loader(
+            dataset, config, device, torch.Generator().manual_seed(seed),
+        )
+        report["training_sampling"] = sampling_metadata
         if len(loader) == 0:
             raise ValueError("Calibration training loader is empty")
         iterator = iter(loader)

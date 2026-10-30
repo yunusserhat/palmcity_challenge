@@ -14,7 +14,7 @@ from typing import Any
 
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageEnhance
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, Dataset
@@ -25,6 +25,7 @@ from .models import (
     NUM_CLASSES, PREPROCESSING, amp_settings, build_model, image_tensor,
     inference_model_config, optimizer_parameter_groups, select_device,
 )
+from .sampling import make_training_sampler, training_sample_weights
 from .storage import require_free_space, require_workspace, safe_output_path
 from .training_state import (
     atomic_checkpoint, atomic_json, capture_rng, code_identity, cpu_state,
@@ -38,24 +39,59 @@ class PanoramaDataset(Dataset):
         self.image_size = tuple(int(value) for value in config["image_size"])
         self.training = training
         augmentation = config.get("augmentation", {})
-        self.flip_probability = float(augmentation.get("horizontal_flip", 0.5)) if training else 0.0
-        self.roll_probability = float(augmentation.get("horizontal_roll", 0.0)) if training else 0.0
+        if not isinstance(augmentation, dict):
+            raise ValueError("augmentation must be an object")
+        flip = float(augmentation.get("horizontal_flip", 0.5))
+        roll = float(augmentation.get("horizontal_roll", 0.0))
+        crop = float(augmentation.get("scale_crop_probability", 0.0))
+        color = float(augmentation.get("color_jitter_probability", 0.0))
+        crop_area = augmentation.get("scale_crop_area", [1.0, 1.0])
+        color_strength = augmentation.get("color_jitter_strength", [0.0] * 4)
+        if not isinstance(crop_area, (list, tuple)) or not isinstance(color_strength, (list, tuple)):
+            raise ValueError("scale_crop_area and color_jitter_strength must be lists")
+        self.crop_area = tuple(float(value) for value in crop_area)
+        self.color_strength = tuple(float(value) for value in color_strength)
         if len(self.image_size) != 2 or self.image_size[0] <= 0 or self.image_size[1] != 2 * self.image_size[0]:
             raise ValueError("image_size must preserve the full 2:1 panorama")
-        if not 0 <= self.flip_probability <= 1 or not 0 <= self.roll_probability <= 1:
+        if any(not math.isfinite(value) or not 0 <= value <= 1 for value in (flip, roll, crop, color)):
             raise ValueError("Augmentation probabilities must be between 0 and 1")
+        if (len(self.crop_area) != 2 or not all(math.isfinite(value) for value in self.crop_area)
+                or not 0 < self.crop_area[0] <= self.crop_area[1] <= 1):
+            raise ValueError("scale_crop_area must contain two ordered area fractions in (0, 1]")
+        if (len(self.color_strength) != 4 or not all(math.isfinite(value) for value in self.color_strength)
+                or any(not 0 <= value <= 1 for value in self.color_strength[:3])
+                or not 0 <= self.color_strength[3] <= 0.5):
+            raise ValueError("color_jitter_strength needs brightness/contrast/saturation in [0,1] and hue in [0,0.5]")
+        self.flip_probability = flip if training else 0.0
+        self.roll_probability = roll if training else 0.0
+        self.crop_probability = crop if training else 0.0
+        self.color_probability = color if training else 0.0
 
     def __len__(self) -> int:
         return len(self.records)
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
         record = self.records[index]
-        with Image.open(record["image"]) as image:
-            native_size = image.size
-            image_data = image_tensor(image, self.image_size)
+        with Image.open(record["image"]) as source:
+            image = source.convert("RGB")
+        native_size = image.size
+        if native_size[0] != 2 * native_size[1]:
+            raise ValueError("Image must have a 2:1 panoramic aspect ratio")
         target = load_mask(record["mask"])
         if target.shape != (native_size[1], native_size[0]):
             raise ValueError(f"Image and mask dimensions differ for {record['id']}")
+        if self.crop_probability and random.random() < self.crop_probability:
+            # A 2:1 crop changes field of view without stretching panorama geometry.
+            area = random.uniform(*self.crop_area)
+            height = max(1, min(native_size[1], round(native_size[1] * math.sqrt(area))))
+            width = 2 * height
+            top = random.randrange(native_size[1] - height + 1)
+            left = random.randrange(native_size[0] - width + 1)
+            image = image.crop((left, top, left + width, top + height))
+            target = target[top:top + height, left:left + width]
+        if self.color_probability and random.random() < self.color_probability:
+            image = color_jitter(image, self.color_strength)
+        image_data = image_tensor(image, self.image_size)
         if self.training:
             target = np.asarray(
                 Image.fromarray(target).resize((self.image_size[1], self.image_size[0]), Image.Resampling.NEAREST),
@@ -72,11 +108,53 @@ class PanoramaDataset(Dataset):
         return image_data, target_data
 
 
+def color_jitter(image: Image.Image, strength: tuple[float, ...]) -> Image.Image:
+    """Apply seeded photometric changes to RGB only, before normalization."""
+    operations = list(range(4))
+    random.shuffle(operations)
+    for operation in operations:
+        amount = strength[operation]
+        if amount == 0:
+            continue
+        if operation < 3:
+            enhancer = (ImageEnhance.Brightness, ImageEnhance.Contrast, ImageEnhance.Color)[operation]
+            image = enhancer(image).enhance(random.uniform(1 - amount, 1 + amount))
+        else:
+            hsv = np.array(image.convert("HSV"), dtype=np.uint8, copy=True)
+            shift = round(random.uniform(-amount, amount) * 255)
+            hsv[..., 0] = (hsv[..., 0].astype(np.int16) + shift) % 256
+            image = Image.frombytes("HSV", image.size, hsv.tobytes()).convert("RGB")
+    return image
+
+
 def seed_worker(worker_id: int) -> None:
     del worker_id
     worker_seed = torch.initial_seed() % (2**32)
     np.random.seed(worker_seed)
     random.seed(worker_seed)
+
+
+def build_training_loader(
+    dataset: PanoramaDataset, config: dict[str, Any], device: torch.device,
+    generator: torch.Generator,
+) -> tuple[DataLoader, dict[str, Any]]:
+    """Share the checkpointed loader RNG with optional train-only sampling."""
+    if not dataset.training:
+        raise ValueError("Training sampling requires a training dataset")
+    sampling = config.get("training_sampling")
+    sampler = None
+    metadata: dict[str, Any] = {"mode": "uniform_shuffle", "samples_per_epoch": len(dataset)}
+    if sampling is not None:
+        weights, details = training_sample_weights(dataset.records, sampling)
+        sampler = make_training_sampler(weights, generator=generator)
+        metadata = {"mode": "rare_class", "details": details}
+    loader = DataLoader(
+        dataset, batch_size=int(config.get("batch_size", 2)), shuffle=sampler is None,
+        sampler=sampler, num_workers=int(config.get("num_workers", 2)),
+        pin_memory=device.type == "cuda", worker_init_fn=seed_worker,
+        generator=generator, drop_last=bool(config.get("drop_last", False)),
+    )
+    return loader, metadata
 
 
 def segmentation_loss(logits: torch.Tensor, target: torch.Tensor, dice_weight: float) -> torch.Tensor:
@@ -264,10 +342,7 @@ def train(
     training = PanoramaDataset(train_records, config, training=True)
     validation = PanoramaDataset(val_records, config, training=False)
     generator = torch.Generator().manual_seed(seed)
-    train_loader = DataLoader(
-        training, batch_size=batch_size, shuffle=True, num_workers=workers,
-        pin_memory=device.type == "cuda", worker_init_fn=seed_worker, generator=generator, drop_last=drop_last,
-    )
+    train_loader, sampling_metadata = build_training_loader(training, config, device, generator)
     val_loader = DataLoader(validation, batch_size=1, shuffle=False, num_workers=workers,
                             pin_memory=device.type == "cuda", worker_init_fn=seed_worker)
     planned_updates = epochs * math.ceil(len(train_loader) / accumulation)
@@ -350,6 +425,7 @@ def train(
         atomic_json(run_dir / "config.json", config)
         atomic_json(run_dir / "metadata.json", {**identity, "parameter_count": sum(p.numel() for p in model.parameters()),
                                                 "checkpoint_peak_estimate_bytes": checkpoint_peak_bytes,
+                                                "training_sampling": sampling_metadata,
                                                 "optimizer_groups": [{"name": group["group_name"], "learning_rate": group["initial_lr"],
                                                                       "weight_decay": group["weight_decay"],
                                                                       "parameter_count": sum(p.numel() for p in group["params"])}
