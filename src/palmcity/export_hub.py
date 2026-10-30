@@ -10,6 +10,8 @@ import torch
 from safetensors import safe_open
 
 from .data import CLASS_NAMES, PALETTE
+from .hub import check_member_names, read_release_metadata
+from .inference import InferenceOptions
 from .models import PREPROCESSING
 from .predict import load_checkpoint
 from .storage import managed_directory, require_free_space, require_workspace, safe_output_path
@@ -68,33 +70,51 @@ def export_checkpoint(checkpoint: str | Path, output: str | Path) -> dict:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", nargs="+", required=True)
+    parser.add_argument("--name", nargs="+", help="Member folder names in checkpoint order, seed<N> by default")
     parser.add_argument("--output-dir", required=True, help="New release folder inside the workspace")
+    parser.add_argument("--scales", nargs="+", type=float, default=[0.75, 1.0, 1.25],
+                        help="Measured challenge scales relative to each member's input size")
+    parser.add_argument("--max-scaled-pixels", type=int, default=2_097_152,
+                        help="Per-scale probability map bound used by the measured challenge inference")
+    parser.add_argument("--single-model", help="Member used by the fast and single-tta modes")
     args = parser.parse_args(argv)
+    if args.name is not None:
+        if len(args.name) != len(args.checkpoint):
+            raise ValueError("Give one --name per checkpoint")
+        check_member_names(args.name)
+    options = InferenceOptions(scales=tuple(args.scales), max_scaled_pixels=args.max_scaled_pixels)
     workspace = require_workspace()
     output = safe_output_path(args.output_dir, workspace)
     if output.exists():
         raise FileExistsError(f"Export directory already exists: {output}")
     required = sum(Path(path).stat().st_size for path in args.checkpoint) * 1.5 / 1024**3
     require_free_space(workspace, gib=max(1, required))
-    # Derive seed from filename-independent checkpoint metadata inside each export.
+    # Default member names derive the seed from checkpoint metadata, not from file names.
     managed_directory(output)
     summaries = []
     for index, path in enumerate(args.checkpoint):
         temporary = output / f"export-{index}"
         summary = export_checkpoint(path, temporary)
-        target = output / f"seed{summary['seed']}"
+        name = args.name[index] if args.name else f"seed{summary['seed']}"
+        target = output / name
         if target.exists():
-            raise ValueError(f"Repeated seed {summary['seed']} in the supplied checkpoints")
+            raise ValueError(f"Repeated member {name} in the supplied checkpoints")
         temporary.rename(target)
-        summaries.append(summary)
-    metadata = {"format_version": 1, "class_names": list(CLASS_NAMES),
+        summaries.append({**summary, "name": name})
+    names = [summary["name"] for summary in summaries]
+    single = args.single_model or ("seed2026" if "seed2026" in names else names[0])
+    if single not in names:
+        raise ValueError(f"--single-model must be one of {names}")
+    metadata = {"format_version": 2, "class_names": list(CLASS_NAMES),
                 "palette": PALETTE.tolist(), "preprocessing": PREPROCESSING,
-                "image_size": summaries[0]["image_size"],
-                "seeds": [summary["seed"] for summary in summaries],
-                "single_model_seed": 2026,
-                "challenge_inference": {"scales": [0.75, 1.0, 1.25], "horizontal_flip": True,
+                "members": [{"name": summary["name"], "seed": summary["seed"], "image_size": summary["image_size"]}
+                            for summary in summaries],
+                "single_model_member": single,
+                "challenge_inference": {"scales": list(options.scales), "horizontal_flip": True,
+                                        "max_scaled_pixels": options.max_scaled_pixels,
                                         "ensemble": "equal arithmetic mean of class probabilities"}}
     (output / "palmcity_inference.json").write_text(json.dumps(metadata, indent=2) + "\n")
+    read_release_metadata(output)
     print(json.dumps({"exports": summaries}, indent=2))
 
 

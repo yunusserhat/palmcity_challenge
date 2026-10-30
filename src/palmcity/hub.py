@@ -18,30 +18,101 @@ from .models import PREPROCESSING, amp_settings, image_tensor, select_device
 from .storage import managed_directory, require_free_space, require_workspace, safe_output_path
 from .transformer_models import QueryTransformerModel
 
-HUB_MODEL = "yunusserhat/palmcity-eomt-dinov3-large"
-SEEDS = (42, 123, 2026)
+HUB_MODEL = "yunusserhat/palmcity-eomt-dinov3-large-v2"
+# The first release, three seeds at 512x1024, stays available for the first paper version.
+HUB_MODEL_V1 = "yunusserhat/palmcity-eomt-dinov3-large"
+HUB_MODEL_V1_REVISION = "addc5a5ef93a26c1d64c1fb23b8c1880ac11c22b"
+MEMBER_FILES = ("config.json", "model.safetensors", "palmcity_inference.json")
+V1_CHALLENGE = {"scales": [0.75, 1.0, 1.25], "horizontal_flip": True, "max_scaled_pixels": 2_097_152}
+
+
+def _check_image_size(size: Any) -> None:
+    if (not isinstance(size, list) or len(size) != 2
+            or not all(isinstance(value, int) and value > 0 for value in size)
+            or size[1] != 2 * size[0]):
+        raise ValueError("Released image_size must preserve the 2:1 panorama")
+
+
+def check_member_names(names: list[Any]) -> None:
+    """Member names become folder names, so they must be plain and unique."""
+    if (not names or len(set(names)) != len(names) or any(
+            not isinstance(name, str) or not name or "/" in name or "\\" in name or name.startswith(".")
+            for name in names)):
+        raise ValueError("Release members need unique plain folder names")
 
 
 def read_release_metadata(directory: str | Path) -> dict[str, Any]:
-    """Require the exact published class IDs and preprocessing before model loading."""
+    """Require the exact published class IDs and preprocessing before model loading.
+
+    Format 1 describes one exported model folder or the original three-seed
+    release, which shares one input size. Format 2 lists named members, each
+    with its own training input size, and the measured challenge settings.
+    """
     directory = Path(directory)
     metadata = json.loads((directory / "palmcity_inference.json").read_text())
-    if metadata.get("format_version") != 1:
+    version = metadata.get("format_version")
+    if version not in (1, 2):
         raise ValueError("Unsupported PalmCity Hub release format")
     if metadata.get("class_names") != list(CLASS_NAMES):
         raise ValueError("Released class order differs from PalmCity's 32 classes")
     if metadata.get("preprocessing") != PREPROCESSING:
         raise ValueError("Released RGB normalization differs from the trained models")
-    size = metadata.get("image_size")
-    if (not isinstance(size, list) or len(size) != 2
-            or not all(isinstance(value, int) and value > 0 for value in size)
-            or size[1] != 2 * size[0]):
-        raise ValueError("Released image_size must preserve the 2:1 panorama")
+    if version == 1:
+        _check_image_size(metadata.get("image_size"))
+        return metadata
+    members = metadata.get("members")
+    if not isinstance(members, list) or not all(isinstance(member, dict) for member in members):
+        raise ValueError("A format 2 release must list its members")
+    check_member_names([member.get("name") for member in members])
+    for member in members:
+        _check_image_size(member.get("image_size"))
+    if metadata.get("single_model_member") not in {member["name"] for member in members}:
+        raise ValueError("single_model_member must name a release member")
+    challenge = metadata.get("challenge_inference")
+    if not isinstance(challenge, dict) or not isinstance(challenge.get("horizontal_flip"), bool):
+        raise ValueError("A format 2 release must record its challenge inference settings")
+    InferenceOptions(scales=tuple(challenge.get("scales", ())), max_scaled_pixels=challenge.get("max_scaled_pixels", 0))
     return metadata
 
 
+def release_members(metadata: dict[str, Any]) -> list[dict[str, Any]]:
+    """Member folders in ensemble order, including the original seed folders."""
+    if metadata["format_version"] == 1:
+        return [{"name": f"seed{seed}", "seed": seed, "image_size": metadata["image_size"]}
+                for seed in metadata.get("seeds", [])]
+    return [dict(member) for member in metadata["members"]]
+
+
+def challenge_settings(metadata: dict[str, Any]) -> dict[str, Any]:
+    """Scales, reflection and probability map bound of the recorded ensemble."""
+    if metadata["format_version"] == 1:
+        return dict(V1_CHALLENGE)
+    challenge = metadata["challenge_inference"]
+    return {key: challenge[key] for key in ("scales", "horizontal_flip", "max_scaled_pixels")}
+
+
+def single_member(metadata: dict[str, Any], *, member: str | None = None, seed: int | None = None) -> str:
+    """Choose the single-model member by name, by an unambiguous seed, or by the release default."""
+    members = release_members(metadata)
+    names = [item["name"] for item in members]
+    if member is not None:
+        choice = member
+    elif seed is not None:
+        matches = [item["name"] for item in members if item.get("seed") == seed]
+        if len(matches) != 1:
+            raise ValueError(f"Seed {seed} does not identify one member; choose --member from {names}")
+        choice = matches[0]
+    elif metadata["format_version"] == 1:
+        choice = f"seed{metadata.get('single_model_seed', 2026)}"
+    else:
+        choice = metadata["single_model_member"]
+    if choice not in names:
+        raise ValueError(f"Unknown release member {choice!r}; available members are {names}")
+    return choice
+
+
 def resolve_release(
-    model: str | Path, seeds: tuple[int, ...], *, revision: str | None = None,
+    model: str | Path, members: tuple[str, ...] = (), *, revision: str | None = None,
     download: bool = False,
 ) -> Path:
     """Use a local bundle or the existing Hub cache; only explicit download permits network."""
@@ -56,8 +127,8 @@ def resolve_release(
             raise RuntimeError("An existing absolute HF_HUB_CACHE is required for downloads")
         if cache.stat().st_uid != os.getuid() or not os.access(cache, os.W_OK | os.X_OK):
             raise RuntimeError("The existing Hugging Face cache must be writable by this user")
-        # Each unchanged float32 seed is about 1.18 GiB; retain room for transfer temporaries.
-        require_free_space(cache, gib=1.5 * len(seeds) + 1)
+        # Each unchanged float32 ViT-L member is about 1.18 GiB; retain room for transfer temporaries.
+        require_free_space(cache, gib=1.5 * len(members) + 1)
         if os.environ.get("PALMCITY_WORF_PROFILE") == "1":
             if not cache.is_relative_to(Path("/scratch")):
                 raise RuntimeError("Worf Hub downloads must use the existing scratch cache")
@@ -68,8 +139,7 @@ def resolve_release(
     return Path(snapshot_download(
         str(model), revision=revision, local_files_only=not download,
         allow_patterns=["palmcity_inference.json", *[
-            f"seed{seed}/{filename}" for seed in seeds
-            for filename in ("config.json", "model.safetensors", "palmcity_inference.json")
+            f"{member}/{filename}" for member in members for filename in MEMBER_FILES
         ]],
     ))
 
@@ -102,12 +172,12 @@ def load_released_model(directory: str | Path) -> tuple[QueryTransformerModel, d
 def released_probabilities(
     loaded: list[tuple[torch.nn.Module, dict[str, Any]]], image: Image.Image,
     *, device: torch.device, scales: tuple[float, ...] = (1.0,),
-    hflip_tta: bool = False, amp: bool = True,
+    hflip_tta: bool = False, amp: bool = True, max_scaled_pixels: int = 2_097_152,
 ) -> torch.Tensor:
     """Use identical probability conversion and TTA to the measured challenge pipeline."""
     if not loaded:
         raise ValueError("Supply at least one released model")
-    options = InferenceOptions(scales=scales)
+    options = InferenceOptions(scales=scales, max_scaled_pixels=max_scaled_pixels)
     native_size = (image.height, image.width)
     inputs = image_tensor(image, native_size)
     use_amp, amp_dtype = amp_settings(device, amp)
@@ -154,8 +224,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--input", required=True, help="Local RGB panorama or image directory")
     parser.add_argument("--output-dir", required=True, help="New folder inside PALMCITY_WORKSPACE")
     parser.add_argument("--mode", choices=("fast", "single-tta", "challenge"), default="fast")
-    parser.add_argument("--seed", choices=SEEDS, type=int, default=2026,
-                        help="Single-model seed; challenge mode always uses all three")
+    parser.add_argument("--member", help="Single-model member folder, for example h1-seed2026; challenge mode uses all")
+    parser.add_argument("--seed", type=int, help="Single-model seed when it names exactly one member")
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--no-amp", action="store_true")
     parser.add_argument("--colorize", action="store_true", help="Also write palette visualizations")
@@ -165,12 +235,17 @@ def main(argv: list[str] | None = None) -> None:
     if output.exists():
         raise FileExistsError(f"Output directory already exists: {output}")
     images = input_images(args.input)
-    seeds = SEEDS if args.mode == "challenge" else (args.seed,)
-    release = resolve_release(args.model, seeds, revision=args.revision, download=args.download)
-    root_metadata = read_release_metadata(release)
-    loaded = [load_released_model(release / f"seed{seed}") for seed in seeds]
-    if any(metadata["image_size"] != root_metadata["image_size"] for _, metadata in loaded):
-        raise ValueError("Seed preprocessing resolutions differ from the ensemble metadata")
+    root_metadata = read_release_metadata(resolve_release(args.model, revision=args.revision, download=args.download))
+    members = release_members(root_metadata)
+    if args.mode != "challenge":
+        name = single_member(root_metadata, member=args.member, seed=args.seed)
+        members = [member for member in members if member["name"] == name]
+    release = resolve_release(args.model, tuple(member["name"] for member in members),
+                              revision=args.revision, download=args.download)
+    loaded = [load_released_model(release / member["name"]) for member in members]
+    if any(metadata["image_size"] != member["image_size"] for (_, metadata), member in zip(loaded, members)):
+        raise ValueError("Member preprocessing resolutions differ from the release metadata")
+    settings = challenge_settings(root_metadata)
     device = select_device(args.device)
     # Grayscale IDs plus optional RGB pictures are bounded by four bytes per input pixel.
     pixels = 0
@@ -181,20 +256,22 @@ def main(argv: list[str] | None = None) -> None:
     managed_directory(output)
     mask_dir = managed_directory(output / "masks")
     color_dir = managed_directory(output / "colorized") if args.colorize else None
-    scales = (1.0,) if args.mode == "fast" else (0.75, 1.0, 1.25)
+    scales = (1.0,) if args.mode == "fast" else tuple(settings["scales"])
+    hflip = args.mode != "fast" and settings["horizontal_flip"]
     for item in images:
         with Image.open(item) as image:
             probabilities = released_probabilities(
                 loaded, image.convert("RGB"), device=device, scales=scales,
-                hflip_tta=args.mode != "fast", amp=not args.no_amp,
+                hflip_tta=hflip, amp=not args.no_amp, max_scaled_pixels=settings["max_scaled_pixels"],
             )
         prediction = probabilities.argmax(0).numpy().astype(np.uint8)
         Image.fromarray(prediction).save(mask_dir / f"{item.stem}.png")
         if color_dir is not None:
             Image.fromarray(PALETTE[prediction]).save(color_dir / f"{item.stem}.png")
         print(f"Predicted {item.name}", flush=True)
-    summary = {"model": args.model, "revision": args.revision, "seeds": list(seeds),
-               "mode": args.mode, "scales": list(scales), "horizontal_flip": args.mode != "fast",
+    summary = {"model": args.model, "revision": args.revision, "members": [member["name"] for member in members],
+               "mode": args.mode, "scales": list(scales), "horizontal_flip": hflip,
+               "max_scaled_pixels": settings["max_scaled_pixels"],
                "class_names": CLASS_NAMES, "preprocessing": PREPROCESSING,
                "images": len(images), "device": str(device)}
     (output / "inference.json").write_text(json.dumps(summary, indent=2) + "\n")

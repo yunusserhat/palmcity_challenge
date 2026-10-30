@@ -14,9 +14,9 @@ from PIL import Image
 from safetensors import safe_open
 
 from palmcity.data import CLASS_NAMES
-from palmcity.export_hub import export_checkpoint
-from palmcity.hub import (input_images, load_released_model, read_release_metadata,
-                         released_probabilities, resolve_release)
+from palmcity.export_hub import export_checkpoint, main as export_main
+from palmcity.hub import (challenge_settings, input_images, load_released_model, read_release_metadata,
+                         release_members, released_probabilities, resolve_release, single_member)
 from palmcity.models import PREPROCESSING, build_model
 
 
@@ -117,7 +117,7 @@ def test_incompatible_release_metadata_is_rejected(synthetic_release, field, val
 
 def test_local_release_needs_no_hub_request(synthetic_release) -> None:
     _, _, release, _ = synthetic_release
-    assert resolve_release(release, (2026,)) == release.resolve()
+    assert resolve_release(release, ("seed2026",)) == release.resolve()
 
 
 def test_input_preflight_rejects_overwrites_and_wrong_panorama(tmp_path: Path) -> None:
@@ -129,3 +129,70 @@ def test_input_preflight_rejects_overwrites_and_wrong_panorama(tmp_path: Path) -
     Image.new("RGB", (32, 32)).save(wrong)
     with pytest.raises(ValueError, match="2:1"):
         input_images(wrong)
+
+
+def test_format2_release_mixes_member_input_sizes(synthetic_release, tmp_path: Path) -> None:
+    model, config, _, _ = synthetic_release
+    torch.manual_seed(54)
+    large = build_model(config["model"]).eval()
+    large_checkpoint = tmp_path / "large.pt"
+    torch.save({"format_version": 1, "config": {**config, "seed": 42, "image_size": [64, 128]},
+                "class_names": list(CLASS_NAMES), "preprocessing": PREPROCESSING,
+                "state_dict": large.state_dict()}, large_checkpoint)
+    release = tmp_path / "release-v2"
+    export_main(["--checkpoint", str(tmp_path / "synthetic.pt"), str(large_checkpoint),
+                 "--name", "h1-seed2026", "h15-seed42", "--output-dir", str(release),
+                 "--scales", "1.0", "1.25", "1.5", "--max-scaled-pixels", "40000",
+                 "--single-model", "h1-seed2026"])
+    root = read_release_metadata(release)
+    members = release_members(root)
+    assert [(member["name"], member["image_size"]) for member in members] == [
+        ("h1-seed2026", [32, 64]), ("h15-seed42", [64, 128])]
+    settings = challenge_settings(root)
+    assert settings == {"scales": [1.0, 1.25, 1.5], "horizontal_flip": True, "max_scaled_pixels": 40000}
+    assert single_member(root) == "h1-seed2026"
+    loaded = [load_released_model(release / member["name"]) for member in members]
+    image = Image.fromarray(np.random.default_rng(48).integers(0, 256, (32, 64, 3), dtype=np.uint8))
+    options = {"device": torch.device("cpu"), "scales": (1.0, 1.25, 1.5), "hflip_tta": True, "amp": False}
+    ensemble = released_probabilities(loaded, image, max_scaled_pixels=40000, **options)
+    parts = [released_probabilities([item], image, max_scaled_pixels=40000, **options) for item in loaded]
+    torch.testing.assert_close(ensemble, (parts[0] + parts[1]) / 2, rtol=0, atol=0)
+    with pytest.raises(ValueError, match="max_scaled_pixels"):
+        released_probabilities(loaded[1:], image, max_scaled_pixels=10000, **options)
+
+
+def test_format1_release_maps_to_seed_members(synthetic_release, tmp_path: Path) -> None:
+    _, _, release, _ = synthetic_release
+    metadata = json.loads((release / "palmcity_inference.json").read_text())
+    root = {key: metadata[key] for key in ("class_names", "palette", "preprocessing")}
+    root.update({"format_version": 1, "image_size": [512, 1024], "seeds": [42, 123, 2026],
+                 "single_model_seed": 2026})
+    (tmp_path / "palmcity_inference.json").write_text(json.dumps(root))
+    loaded = read_release_metadata(tmp_path)
+    assert [member["name"] for member in release_members(loaded)] == ["seed42", "seed123", "seed2026"]
+    assert challenge_settings(loaded) == {"scales": [0.75, 1.0, 1.25], "horizontal_flip": True,
+                                          "max_scaled_pixels": 2_097_152}
+    assert single_member(loaded) == "seed2026"
+    assert single_member(loaded, seed=42) == "seed42"
+
+
+@pytest.mark.parametrize("names", [["a", "a"], ["../a"], ["", "b"]])
+def test_format2_member_names_must_be_plain_and_unique(synthetic_release, tmp_path: Path, names) -> None:
+    _, _, release, _ = synthetic_release
+    metadata = json.loads((release / "palmcity_inference.json").read_text())
+    root = {key: metadata[key] for key in ("class_names", "palette", "preprocessing")}
+    root.update({"format_version": 2, "single_model_member": names[0],
+                 "members": [{"name": name, "seed": 1, "image_size": [32, 64]} for name in names],
+                 "challenge_inference": {"scales": [1.0], "horizontal_flip": True, "max_scaled_pixels": 4096}})
+    (tmp_path / "palmcity_inference.json").write_text(json.dumps(root))
+    with pytest.raises(ValueError, match="plain folder names"):
+        read_release_metadata(tmp_path)
+
+
+def test_seed_that_names_two_members_is_rejected() -> None:
+    root = {"format_version": 2, "single_model_member": "h1-seed42",
+            "members": [{"name": "h1-seed42", "seed": 42, "image_size": [768, 1536]},
+                        {"name": "h15-seed42", "seed": 42, "image_size": [896, 1792]}]}
+    with pytest.raises(ValueError, match="does not identify one member"):
+        single_member(root, seed=42)
+    assert single_member(root, member="h15-seed42") == "h15-seed42"
