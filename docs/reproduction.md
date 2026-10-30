@@ -2,7 +2,7 @@
 
 All commands run from the repository root. Set `PALMCITY_WORKSPACE` to an absolute dedicated directory owned by your user, and keep it set for the entire workflow. Runtime outputs remain below that directory. The scripts do not change shell startup files, install into system Python, or invoke `pip --user`.
 
-The sections up to the nine-model comparison rebuild the system of 5 October 2026. The second stage section rebuilds the system of 30 October 2026. Both stages use the same locked environment.
+The sections up to the comparison of nine models rebuild the system of 5 October 2026. The second stage section rebuilds the system of 30 October 2026. Both stages use the same locked environment.
 
 ## Environment and storage
 
@@ -172,7 +172,7 @@ Their original fixed budgets are available separately in `configs/diagnostics`. 
 
 The second stage kept the EoMT architecture, the pinned ADE20K checkpoint and the 6351-update budget of the first system and changed the training recipe. `configs/recipes` contains the 16 measured EoMT recipes of this stage. Each one equals the recorded run configuration after removing its local checkpoint path.
 
-| Recipes | Change from the first-system EoMT recipe |
+| Recipes | Change from the EoMT recipe of the first system |
 |---|---|
 | `campaign-e1-augment-seed{42,123,2026}` | A 2:1 crop over 50 to 100 percent of the panorama area with probability 0.5, and brightness, contrast, saturation and hue changes of strength 0.2, 0.2, 0.2 and 0.05 with probability 0.8 |
 | `campaign-e2-sampling-seed42` | Training images drawn by rare class presence in the training masks, with power 0.5, maximum weight 5 and at least 16 pixels. Road, Building, Sky and Void do not count toward rarity |
@@ -201,9 +201,9 @@ bash scripts/run.sh python -m palmcity.bootstrap \
 
 The manifest keeps the training list first and appends the validation images, so the training list holds 581 images. Its validation and test lists are unchanged. A validation score computed after training on it only shows that training ran. The bootstrap draws the validation images with replacement 5000 times with seed 20261028 and reports the candidate minus baseline difference, its 2.5 and 97.5 percentiles and the share of draws with a positive difference.
 
-The H15 recipe needs most of a 32 GB card. Its measured run reached 26.14 GiB of peak allocated memory, and a short benchmark reserved 28.34 GiB. A 1024 by 2048 benchmark ran out of memory at 24.20 GiB allocated, and the Transformers EoMT model in the locked environment does not support gradient checkpointing. On one RTX 5090 an H1 run took about 97 minutes and the H15 run about 145 minutes. The final four-model test prediction used 5.63 GiB of peak allocated memory and needs `--max-scaled-pixels 4000000` for the 1.5 scale of the H15 model.
+The H15 recipe needs most of a 32 GB card. Its measured run reached 26.14 GiB of peak allocated memory, and a short benchmark reserved 28.34 GiB. A 1024 by 2048 benchmark ran out of memory at 24.20 GiB allocated, and the Transformers EoMT model in the locked environment does not support gradient checkpointing. On one RTX 5090 an H1 run took about 97 minutes and the H15 run about 145 minutes. The final test prediction with four models used 5.63 GiB of peak allocated memory and needs `--max-scaled-pixels 4000000` for the 1.5 scale of the H15 model.
 
-Four further systems and two post-processing methods were measured in this stage and are reported in the [results](results.md), but they are not part of this release. They are SegFormer-B5 from a Cityscapes checkpoint, a longer Mask2Former run, an Ultralytics YOLO26x semantic model, EoMT initialized from a LightlyTrain Cityscapes checkpoint, SAM voting as in Semantic Segment Anything, and a YOLOv8x-seg mask overlay. Several of them need separate environments or AGPL licensed packages, and none of them improved the validation score.
+Four further systems and two post processing methods were measured in this stage and are reported in the [results](results.md), but they are not part of this release. They are SegFormer-B5 from a Cityscapes checkpoint, a longer Mask2Former run, an Ultralytics YOLO26x semantic model, EoMT initialized from a LightlyTrain Cityscapes checkpoint, SAM voting as in Semantic Segment Anything, and a YOLOv8x-seg mask overlay. Several of them need separate environments or AGPL licensed packages, and none of them improved the validation score.
 
 ## Download-free verification
 

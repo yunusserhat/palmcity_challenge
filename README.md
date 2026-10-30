@@ -35,7 +35,7 @@ HF_HUB_OFFLINE=0 bash scripts/run.sh python -m palmcity.hub \
   --output-dir outputs/hub-fast --mode fast --colorize
 ```
 
-Use `--mode challenge` for the submitted four-model ensemble with scales and horizontal flips, or `--mode single-tta` for one model with the same views. The `fast` mode runs one model at its input size without test time augmentation. Inputs must have the 2:1 panoramic aspect ratio. Outputs include official class-ID PNGs and optional color visualizations. No dataset download or training is needed for this route. The three models of the first system remain available with `--model yunusserhat/palmcity-eomt-dinov3-large --revision addc5a5ef93a26c1d64c1fb23b8c1880ac11c22b`. See the [inference guide](docs/inference.md) for CPU use, offline use and all options.
+Use `--mode challenge` for the submitted ensemble of four models with scales and horizontal flips, or `--mode single-tta` for one model with the same views. The `fast` mode runs one model at its input size without test time augmentation. Inputs must have the 2:1 panoramic aspect ratio. Outputs include official class-ID PNGs and optional color visualizations. No dataset download or training is needed for this route. The three models of the first system remain available with `--model yunusserhat/palmcity-eomt-dinov3-large --revision addc5a5ef93a26c1d64c1fb23b8c1880ac11c22b`. See the [inference guide](docs/inference.md) for CPU use, offline use and all options.
 
 ## Train the current system
 
@@ -66,7 +66,7 @@ The official metric is the macro average over **all 32 classes**, including `Voi
 
 `python -m palmcity.bootstrap` compares two sets of validation predictions. It draws the 84 validation images with replacement 5000 times, sums their confusion matrices and recomputes the official metric for both sets on the same draws. The interval describes image sampling only. It does not correct for repeated selection on the same images.
 
-The first-stage comparison includes DeepLabV3+ with ResNet50, SegFormer-B2 and B5, UPerNet with ConvNeXt-Large and Swin-Large, Mask2Former with Swin-Large, DINOv3 ViT-B and ViT-L with a linear segmentation decoder, and EoMT with DINOv3 ViT-L. Source initialization differs between practical systems, so the results do not isolate architecture from pretraining.
+The comparison of the first stage includes DeepLabV3+ with ResNet50, SegFormer-B2 and B5, UPerNet with ConvNeXt-Large and Swin-Large, Mask2Former with Swin-Large, DINOv3 ViT-B and ViT-L with a linear segmentation decoder, and EoMT with DINOv3 ViT-L. Source initialization differs between practical systems, so the results do not isolate architecture from pretraining.
 
 ## License and citation
 

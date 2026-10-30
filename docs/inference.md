@@ -31,7 +31,7 @@ uses four models, about 5 GB in total. Download preflight also reserves room for
 | `h15-seed42` | 896 by 1792 | 42 | 497 training and 84 validation |
 
 The `fast` and `single-tta` modes use `h1-seed2026` unless you pass `--member`.
-Its training-only counterpart had the highest validation score of the three 768 by 1536 seeds.
+Its counterpart trained only on the training images had the highest validation score of the three 768 by 1536 seeds.
 Each member keeps its own input size. Scales are relative to that size.
 
 ## Fast single model
@@ -65,8 +65,7 @@ HF_HUB_OFFLINE=0 bash scripts/run.sh python -m palmcity.hub \
 
 This uses all four members with the same six views per member as the submitted system.
 It averages class probabilities with equal weights, then chooses the most probable class.
-One model occupies GPU memory at a time. The release metadata raises the per-scale probability
-map bound to 4,000,000 pixels so that the largest view of the 896 by 1792 member fits.
+One model occupies GPU memory at a time. The release metadata raises the probability map bound for each scale to 4,000,000 pixels so that the largest view of the 896 by 1792 member fits.
 
 ```bash
 HF_HUB_OFFLINE=0 bash scripts/run.sh python -m palmcity.hub \
@@ -87,7 +86,7 @@ HF_HUB_OFFLINE=0 bash scripts/run.sh python -m palmcity.hub \
   --output-dir outputs/challenge-first --mode challenge --colorize
 ```
 
-Its single-model modes use seed 2026 unless you pass `--seed` or `--member` with a folder such as `seed42`.
+Its single model modes use seed 2026 unless you pass `--seed` or `--member` with a folder such as `seed42`.
 
 ## Offline use and native files
 
@@ -103,11 +102,11 @@ pipeline does not supply all of those project-specific steps.
 
 ## Measurements
 
-The submitted four-model ensemble predicted the 249 test images in 1070.92 seconds on one RTX 5090,
+The submitted ensemble of four models predicted the 249 test images in 1070.92 seconds on one RTX 5090,
 or 1088.71 seconds including checkpoint loading and provenance checks. Peak allocated GPU memory
 was 5.63 GiB. It obtained 61.54% mIoU and 71.93% mF1 on the hidden test leaderboard on 30 October 2026.
 The released models were trained on the validation images, so validation scores of these files are
-not meaningful. Their training-only counterparts scored 64.53% mIoU and 73.67% mF1 on validation.
+not meaningful. Their counterparts trained only on the training images scored 64.53% mIoU and 73.67% mF1 on validation.
 
 The first release was measured on 84 PalmCity validation images with an RTX 5090.
 The times include RGB preprocessing, prediction and PNG writing.
@@ -140,6 +139,6 @@ bash scripts/run.sh python -m palmcity.export_hub \
   --output-dir outputs/hub-export
 ```
 
-Without `--name`, members are called `seed<N>` and the first-release settings are the defaults.
+Without `--name`, members are called `seed<N>` and the settings of the first release are the defaults.
 License and attribution files must accompany any further distribution of DINOv3 derivatives.
 Exporting weights does not grant additional rights to upstream data or models.

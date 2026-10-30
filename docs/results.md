@@ -16,7 +16,7 @@ The submission of 30 October 2026 averaged three H1 models and one H15 model, al
 | 4 | onurcbayrak | 945126 | 46.02 | 56.99 |
 | 5 | MaxwellEQ | 950834 | 33.54 | 40.93 |
 
-The lead over the next entry is 0.98 points of mIoU and 0.51 points of mF1, computed from the full precision values. The training-only counterpart of the submitted ensemble scored 64.53 mIoU on validation, 2.99 points above the test score, but the two numbers belong to different model instances. An earlier second-stage submission on 29 October 2026 used the three H1 models alone with scales 0.75, 1 and 1.25. The leaderboard lists only the best entry of each participant and the competition has no published end date, so the ranking is a dated snapshot.
+The lead over the next entry is 0.98 points of mIoU and 0.51 points of mF1, computed from the full precision values. The counterpart of the submitted ensemble trained only on the training images scored 64.53 mIoU on validation, 2.99 points above the test score, but the two numbers belong to different model instances. An earlier submission of the second stage on 29 October 2026 used the three H1 models alone with scales 0.75, 1 and 1.25. The leaderboard lists only the best entry of each participant and the competition has no published end date, so the ranking is a dated snapshot.
 
 ### Single runs
 
@@ -63,7 +63,7 @@ Each row averages class probabilities with equal weights and horizontal flips. D
 
 ### Negative results
 
-SAM voting in the style of Semantic Segment Anything, a YOLOv8x-seg mask overlay and adding C2 or C3 to an ensemble all lowered validation mIoU. The C3 weights were fixed before its single-model result. Rare class sampling (E2) lowered the mean IoU of the eight rarest classes from 31.34 to 30.21 for the same seed. Five H1 seeds gave no clear gain over three.
+SAM voting in the style of Semantic Segment Anything, a YOLOv8x-seg mask overlay and adding C2 or C3 to an ensemble all lowered validation mIoU. The C3 weights were fixed before its single model result. Rare class sampling (E2) lowered the mean IoU of the eight rarest classes from 31.34 to 30.21 for the same seed. Five H1 seeds gave no clear gain over three.
 
 | Variant | Scales | Val mIoU (%) | Val mF1 (%) | Baseline | Difference | 95% interval | Positive share |
 |---|---|---:|---:|---|---:|---|---:|
@@ -83,9 +83,9 @@ SAM voting in the style of Semantic Segment Anything, a YOLOv8x-seg mask overlay
 
 ### Compute and limits
 
-The 20 training runs of this stage took 24.56 GPU hours of elapsed process time, including validation. This excludes calibration probes, the YOLOv8 overlay training, SAM mask generation and inference. The four-model test prediction took 1070.92 seconds for 249 images, or 1088.71 seconds including checkpoint loading, with 5.63 GiB of peak allocated memory. The first stage needed 242.19 and 251.49 seconds and 2.70 GiB.
+The 20 training runs of this stage took 24.56 GPU hours of elapsed process time, including validation. This excludes calibration probes, the YOLOv8 overlay training, SAM mask generation and inference. The test prediction with four models took 1070.92 seconds for 249 images, or 1088.71 seconds including checkpoint loading, with 5.63 GiB of peak allocated memory. The first stage needed 242.19 and 251.49 seconds and 2.70 GiB.
 
-The 84 validation images selected checkpoints, test time scales and the composition, so the validation scores are optimistic. The submitted models have no independent validation score. The second round of runs was approved right after the first second-stage submission, with the aim of passing the leading entry. Its choices used only validation data and the written rules, and no setting was tuned on the test set. Paired bootstrap intervals ignore the correlation of nearby views and the selection process.
+The 84 validation images selected checkpoints, test time scales and the composition, so the validation scores are optimistic. The submitted models have no independent validation score. The second round of runs was approved right after the first submission of the second stage, with the aim of passing the leading entry. Its choices used only validation data and the written rules, and no setting was tuned on the test set. Paired bootstrap intervals ignore the correlation of nearby views and the selection process.
 
 ## First stage, 5 October 2026
 
