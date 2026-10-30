@@ -33,6 +33,8 @@ uses four models, about 5 GB in total. Download preflight also reserves room for
 The `fast` and `single-tta` modes use `h1-seed2026` unless you pass `--member`.
 Its counterpart trained only on the training images had the highest validation score of the three 768 by 1536 seeds.
 Each member keeps its own input size. Scales are relative to that size.
+The release was published as the immutable revision `d06d147e9c63662ac1f74fb017d5b3e7ac566661`.
+Pass it with `--revision` when the exact files matter.
 
 ## Fast single model
 
