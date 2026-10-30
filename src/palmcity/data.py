@@ -277,6 +277,22 @@ def audit_manifest(
     }
 
 
+def trainval_manifest(manifest: Any, *, strict_counts: bool = False) -> dict[str, list[dict[str, str]]]:
+    """Final training manifest for a fixed recipe, with train followed by val.
+
+    The val and test lists stay unchanged. A validation score computed after
+    training on this manifest only shows that training ran, because the
+    validation images are inside the training list.
+    """
+    manifest = validate_manifest(manifest)
+    overlap = {record["id"] for record in manifest["train"]} & {record["id"] for record in manifest["val"]}
+    if overlap:
+        raise ValueError(f"train and val already share IDs, for example {sorted(overlap)[:3]}")
+    if strict_counts and any(len(manifest[split]) != OFFICIAL_COUNTS[split] for split in SPLITS):
+        raise ValueError(f"Expected the official split counts {OFFICIAL_COUNTS}")
+    return {"train": manifest["train"] + manifest["val"], "val": manifest["val"], "test": manifest["test"]}
+
+
 def _write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x", encoding="utf-8") as destination:
@@ -303,9 +319,22 @@ def main() -> None:
         command.add_argument("--strict-counts", action="store_true")
         command.add_argument("--width", type=int, default=1024)
         command.add_argument("--height", type=int, default=512)
+    trainval = commands.add_parser("trainval", help="Write a final training manifest with train followed by val")
+    trainval.add_argument("--manifest", required=True, help="Audited official manifest")
+    trainval.add_argument("--output", required=True)
+    trainval.add_argument("--strict-counts", action="store_true")
     args = parser.parse_args()
     try:
         workspace = require_workspace()
+        if args.command == "trainval":
+            output_path = safe_output_path(args.output, workspace)
+            if output_path.exists():
+                raise ValueError(f"Refusing to overwrite manifest: {output_path}")
+            manifest = trainval_manifest(read_manifest(args.manifest), strict_counts=args.strict_counts)
+            _write_json(output_path, manifest)
+            print(f"Manifest: {output_path}; train {len(manifest['train'])}, val {len(manifest['val'])}, "
+                  f"test {len(manifest['test'])}")
+            return
         report_path = safe_output_path(args.report, workspace)
         if report_path.exists():
             raise ValueError(f"Refusing to overwrite report: {report_path}")

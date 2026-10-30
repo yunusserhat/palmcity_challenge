@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 import pytest
 
-from palmcity.data import PALETTE, audit_manifest, build_manifest, load_mask, read_manifest
+from palmcity.data import PALETTE, audit_manifest, build_manifest, load_mask, read_manifest, trainval_manifest
 from palmcity.metrics import confusion_matrix, scores_from_confusion
 from palmcity import submission
 
@@ -122,6 +122,21 @@ def test_manifest_rejects_ambiguous_records(tmp_path, change):
     path.write_text(json.dumps(manifest))
     with pytest.raises(ValueError):
         read_manifest(path)
+
+
+def test_trainval_manifest_appends_val_and_keeps_other_lists(tmp_path):
+    def record(split, name):
+        entry = {"id": name, "image": str(tmp_path / split / f"{name}.png")}
+        return entry if split == "test" else {**entry, "mask": str(tmp_path / f"{split}-masks" / f"{name}.png")}
+    manifest = {"train": [record("train", "a"), record("train", "b")], "val": [record("val", "c")],
+                "test": [record("test", "d")]}
+    final = trainval_manifest(manifest)
+    assert [entry["id"] for entry in final["train"]] == ["a", "b", "c"]
+    assert final["val"] == manifest["val"] and final["test"] == manifest["test"]
+    with pytest.raises(ValueError, match="official split counts"):
+        trainval_manifest(manifest, strict_counts=True)
+    with pytest.raises(ValueError, match="already share IDs"):
+        trainval_manifest(final)
 
 
 def test_official_metrics_include_void_and_zero_absent_classes():
