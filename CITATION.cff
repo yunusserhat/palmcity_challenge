@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "Please cite the PalmCity dataset paper and this software when using the pipeline."
+message: "Please cite the accompanying paper, the PalmCity dataset paper and this software when using the pipeline."
 type: software
 title: "PalmCity Challenge Training Pipeline"
 authors:
@@ -7,7 +7,17 @@ authors:
     family-names: "Bıçakçı"
     affiliation: "Department of Artificial Intelligence and Machine Learning, Faculty of Applied Sciences, Marmara University, Istanbul, Türkiye"
     orcid: "https://orcid.org/0000-0002-7288-9959"
-version: "0.1.0"
-date-released: 2026-10-05
+version: "0.2.0"
+date-released: 2026-10-30
 repository-code: "https://github.com/yunusserhat/palmcity_challenge"
 license: GPL-3.0-only
+preferred-citation:
+  type: article
+  title: "Vision Transformer Ensembles for Panoramic Street Segmentation"
+  authors:
+    - given-names: "Yunus Serhat"
+      family-names: "Bıçakçı"
+      orcid: "https://orcid.org/0000-0002-7288-9959"
+  year: 2026
+  doi: "10.48550/arXiv.2610.06063"
+  url: "https://arxiv.org/abs/2610.06063"

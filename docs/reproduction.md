@@ -2,6 +2,8 @@
 
 All commands run from the repository root. Set `PALMCITY_WORKSPACE` to an absolute dedicated directory owned by your user, and keep it set for the entire workflow. Runtime outputs remain below that directory. The scripts do not change shell startup files, install into system Python, or invoke `pip --user`.
 
+The sections up to the nine-model comparison rebuild the system of 5 October 2026. The second stage section rebuilds the system of 30 October 2026. Both stages use the same locked environment.
+
 ## Environment and storage
 
 ```bash
@@ -16,7 +18,7 @@ Install Python 3.12 and uv separately before setup. `PALMCITY_PYTHON` can be an 
 
 The default environment is `$PALMCITY_WORKSPACE/.venv`. `PALMCITY_ENVIRONMENT` selects an existing environment explicitly, which is useful for local verification. Setup synchronizes the selected environment, so it should belong to this project. `PALMCITY_DEVICE`, such as `cuda:0`, selects the GPU for `scripts/reproduce.sh`. Runtime scripts require a prepared environment. The expected training device supports BF16; the original runs used CUDA 12.8 and one 32 GB RTX 5090 per job.
 
-The storage preflight verifies ownership, actual write access, filesystem identity, free space and output confinement. Dependency installation reserves 20 GiB of free space. Dataset preparation reserves 5 GiB. Three selected training runs should start with at least 60 GiB available before environment setup. Keeping all candidates and optimizer states can require more than 150 GiB. Peak space depends on which intermediate runs you retain.
+The storage preflight verifies ownership, actual write access, filesystem identity, free space and output confinement. Dependency installation reserves 20 GiB of free space. Dataset preparation reserves 5 GiB. Three selected training runs should start with at least 60 GiB available before environment setup. The eight runs of the second stage need at least 80 GiB, because each finished run keeps about 4.8 GiB of checkpoints. Keeping all candidates and optimizer states can require more than 150 GiB. Peak space depends on which intermediate runs you retain.
 
 Python multiprocessing creates Unix-domain sockets below its temporary directory. The default `$PALMCITY_WORKSPACE/tmp` must be at most 70 bytes long, including the full absolute path. A longer path is rejected before multiworker training begins. For a deeply nested workspace, explicitly select a short temporary directory before setup and verification.
 
@@ -166,6 +168,43 @@ Different pretrained sources and source-informed optimizer choices make this a c
 
 Their original fixed budgets are available separately in `configs/diagnostics`. Each carries `publication_selection_status` set to `excluded_from_primary_selection`. Prepare and train them manually only to recreate the four historical diagnostics. Together with the nine eligible pilots and six confirmations, these recipes cover all 19 reported training runs. Do not select the maximum of a superseded recipe and its corrected counterpart as a primary model comparison.
 
+## Second stage, 28 to 30 October 2026
+
+The second stage kept the EoMT architecture, the pinned ADE20K checkpoint and the 6351-update budget of the first system and changed the training recipe. `configs/recipes` contains the 16 measured EoMT recipes of this stage. Each one equals the recorded run configuration after removing its local checkpoint path.
+
+| Recipes | Change from the first-system EoMT recipe |
+|---|---|
+| `campaign-e1-augment-seed{42,123,2026}` | A 2:1 crop over 50 to 100 percent of the panorama area with probability 0.5, and brightness, contrast, saturation and hue changes of strength 0.2, 0.2, 0.2 and 0.05 with probability 0.8 |
+| `campaign-e2-sampling-seed42` | Training images drawn by rare class presence in the training masks, with power 0.5, maximum weight 5 and at least 16 pixels. Road, Building, Sky and Void do not count toward rarity |
+| `campaign-e3-augment-sampling-seed42` | Both changes |
+| `campaign-p1-points4x-seed42` | 50176 instead of 12544 matching points. The measured run stopped after 5000 of 6351 updates |
+| `campaign-h1-augment-768x1536-seed{42,123,2026,7,99}` | The E1 changes at 768 by 1536 pixels |
+| `campaign-h15-augment-896x1792-seed42` | The E1 changes at 896 by 1792 pixels |
+| `final-h1-trainval-seed{42,123,2026}`, `final-h15-trainval-seed42` | The selected recipes for the train plus val manifest, without intermediate validation |
+
+Two chains of runs selected the system on validation with rules written into their scripts before the results existed. The first chain trained the H1 seeds 123 and 2026 and compared three H1 models with the three E1 models plus the three H1 models, using scales 0.75, 1 and 1.25. The rule kept the higher validation mIoU, the three H1 models with 63.75. The second chain first kept the scale set with the highest validation mIoU among four sets for the three H1 models, which was 1, 1.25 and 1.5 with 64.01. It then trained the H1 seeds 7 and 99 and the H15 model and compared three or five H1 models, each with and without the H15 model. The rule again kept the highest validation mIoU, three H1 models with the H15 model at 64.53. The selected recipes were then retrained on the training and validation images for the same number of updates.
+
+The `v2-*` stages of `scripts/reproduce.sh` repeat the selected path, as shown in the [README](../README.md). The train plus val manifest and a paired comparison can also be produced directly.
+
+```bash
+bash scripts/run.sh python -m palmcity.data trainval \
+  --manifest "$PALMCITY_WORKSPACE/manifests/dataset.json" \
+  --output manifests/trainval.json --strict-counts
+
+bash scripts/run.sh python -m palmcity.bootstrap \
+  --manifest "$PALMCITY_WORKSPACE/manifests/dataset.json" \
+  --baseline-predictions "$PALMCITY_WORKSPACE/outputs/val-ensemble-tta" \
+  --baseline-report "$PALMCITY_WORKSPACE/reports/val-ensemble-tta-score.json" \
+  --candidate-predictions "$PALMCITY_WORKSPACE/outputs/v2-val-ensemble" \
+  --report reports/second-vs-first-bootstrap.json
+```
+
+The manifest keeps the training list first and appends the validation images, so the training list holds 581 images. Its validation and test lists are unchanged. A validation score computed after training on it only shows that training ran. The bootstrap draws the validation images with replacement 5000 times with seed 20261028 and reports the candidate minus baseline difference, its 2.5 and 97.5 percentiles and the share of draws with a positive difference.
+
+The H15 recipe needs most of a 32 GB card. Its measured run reached 26.14 GiB of peak allocated memory, and a short benchmark reserved 28.34 GiB. A 1024 by 2048 benchmark ran out of memory at 24.20 GiB allocated, and the Transformers EoMT model in the locked environment does not support gradient checkpointing. On one RTX 5090 an H1 run took about 97 minutes and the H15 run about 145 minutes. The final four-model test prediction used 5.63 GiB of peak allocated memory and needs `--max-scaled-pixels 4000000` for the 1.5 scale of the H15 model.
+
+Four further systems and two post-processing methods were measured in this stage and are reported in the [results](results.md), but they are not part of this release. They are SegFormer-B5 from a Cityscapes checkpoint, a longer Mask2Former run, an Ultralytics YOLO26x semantic model, EoMT initialized from a LightlyTrain Cityscapes checkpoint, SAM voting as in Semantic Segment Anything, and a YOLOv8x-seg mask overlay. Several of them need separate environments or AGPL licensed packages, and none of them improved the validation score.
+
 ## Download-free verification
 
 ```bash
@@ -173,4 +212,4 @@ bash scripts/verify.sh
 PALMCITY_VERIFY_GPU=1 bash scripts/verify.sh
 ```
 
-The default check runs Ruff and the CPU test suite using synthetic local images, masks, checkpoints and random model weights. It does not download models or real data. The optional GPU check adds random-weight BF16 forward passes. Tests cover native and query segmentation adapters, official metric edge cases, probability averaging, TTA alignment, resumable fixed budgets, strict ZIP requirements, pinned-file hashes and portable storage confinement.
+The default check runs Ruff and the CPU test suite using synthetic local images, masks, checkpoints and random model weights. It does not download models or real data. The optional GPU check adds random-weight BF16 forward passes. Tests cover native and query segmentation adapters, official metric edge cases, probability averaging, TTA alignment, resumable fixed budgets, strict ZIP requirements, pinned-file hashes and portable storage confinement. They also cover the training augmentation and rare class sampling with checkpoint resume, the paired bootstrap, the train plus val manifest and releases whose members use different input sizes.

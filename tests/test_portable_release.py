@@ -155,13 +155,17 @@ def test_smp_initialization_uses_verified_local_tensors(monkeypatch, tmp_path):
 def test_published_recipes_have_no_machine_paths_and_fixed_budget():
     root = Path(__file__).resolve().parents[1]
     recipes = sorted((root / "configs/recipes").glob("*.json"))
-    assert len(recipes) == 15
+    assert len(recipes) == 31
     for path in recipes:
         recipe = json.loads(path.read_text())
         assert recipe["batch_size"] * recipe["gradient_accumulation"] == 4
-        assert recipe["image_size"] == [512, 1024]
+        height, width = recipe["image_size"]
+        assert width == 2 * height
+        if not path.name.startswith(("campaign-", "final-")):
+            assert recipe["image_size"] == [512, 1024]
         assert recipe["max_optimizer_steps"] > 0
-        assert len(recipe["validation_epochs"]) == 10
+        # Final recipes train on train plus val; the trainer still validates once at the budget end.
+        assert len(recipe["validation_epochs"]) == (0 if path.name.startswith("final-") else 10)
         assert recipe["model"]["classes"] == 32
         assert "/scratch/" not in path.read_text()
         assert "/mnt/" not in path.read_text()
@@ -170,3 +174,21 @@ def test_published_recipes_have_no_machine_paths_and_fixed_budget():
     assert len(diagnostics) == 4
     assert all(json.loads(p.read_text())["publication_selection_status"] ==
                "excluded_from_primary_selection" for p in diagnostics)
+
+
+def test_second_stage_recipes_change_only_recorded_fields():
+    root = Path(__file__).resolve().parents[1]
+    base = json.loads((root / "configs/recipes/confirmation-eomt_dinov3_vit_large-seed42.json").read_text())
+    varied = {"seed", "image_size", "augmentation", "training_sampling", "validation_epochs", "model"}
+    recipes = sorted(path for path in (root / "configs/recipes").glob("*.json")
+                     if path.name.startswith(("campaign-", "final-")))
+    assert len(recipes) == 16
+    for path in recipes:
+        recipe = json.loads(path.read_text())
+        assert {key: value for key, value in recipe.items() if key not in varied} == {
+            key: value for key, value in base.items() if key not in varied}
+        model, expected = deepcopy(recipe["model"]), deepcopy(base["model"])
+        assert model["hf_config"].pop("train_num_points") in (12544, 50176)
+        expected["hf_config"].pop("train_num_points")
+        assert model == expected
+        assert recipe["image_size"] in ([512, 1024], [768, 1536], [896, 1792])
